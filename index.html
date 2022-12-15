@@ -1,0 +1,307 @@
+<!doctype html>
+<html>
+
+    <head>
+
+        <meta charset="utf-8" />
+        <title>Secret Santa Generator</title>
+
+        <script src="vendors/Lodash-3.10.1.js"></script>
+        <script src="vendors/Cryptojs.aes-3.1.2.js"></script>
+
+        <script src="./SecretSanta.js"></script>
+
+        <style>
+
+            * {
+                box-sizing: border-box;
+            }
+
+            html, body, .main {
+                margin: 0;
+
+                width: 100%;
+                height: 100%;
+
+                padding: 0;
+            }
+
+            body {
+                background-image: url(assets/santa.png);
+                background-position: bottom right;
+                background-repeat: no-repeat;
+
+                font-family: 'Comic Sans MS';
+            }
+
+            .main {
+                display: flex;
+            }
+
+            .part {
+                display: flex;
+                flex-direction: column;
+
+                padding: 20px;
+
+                flex: 1;
+            }
+            .part2 {
+                display: flex;
+                flex-direction: column;
+
+                padding: 150px;
+
+                flex: 1;
+            }
+
+            .instructions {
+                margin: auto 10%;
+            }
+
+            .instructions a {
+                text-decoration: none;
+
+                color: #0CB50C;
+            }
+            
+
+            .input {
+                display: block;
+                align-self: stretch;
+
+                width: 100%;
+                breadth :50%
+                flex: auto;
+
+                border: 10px solid #0CB50C;
+                border-radius: 10px;
+                margin-top: 150px;
+
+                padding: 15px;
+
+                background-color: rgba(255, 255, 255, .7);
+                outline: none;
+            }
+
+            .generate {
+                display: block;
+
+                margin-top: 20px;
+
+                flex: none;
+                height: 50px;
+
+                border: 5px solid #0CB50C;
+                border-radius: 5px;
+
+                font-family: inherit;
+                font-size: 20px;
+
+                background-color: #EA1212;
+                color: #FFFFFF;
+            }
+            .generateName {
+                display: block;
+
+                margin-top: 100px;
+
+                flex: none;
+                height: 50px;
+
+                border: 5px solid #0CB50C;
+                border-radius: 5px;
+
+                font-family: inherit;
+                font-size: 20px;
+
+                background-color: #EA1000;
+                color: #FFFFFF;
+            }
+
+            .generate:focus {
+                border-color: #E6E020;
+
+                outline: none;
+            }
+
+            .result {
+                margin-top: 20px;
+
+                flex: none;
+
+                border: 10px solid #E6E020;
+                border-radius: 10px;
+
+                padding: 15px;
+
+                background: #FFFFFF;
+            }
+
+            .result a {
+                color: blue;
+            }
+
+            .result.none {
+                display: none;
+            }
+
+            .result.error {
+                border-color: #EA1212;
+
+                color: #EA1212;
+            }
+
+            .result-table {
+                table-layout: fixed;
+
+                width: 100%;
+            }
+
+            .result-name {
+                width: 30%;
+
+                padding: 5px 8px;
+            }
+
+            .result-link {
+                width: 100%;
+                overflow: hidden;
+
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+            .text1{
+                background: #f1f1f1;
+            }
+
+        </style>
+
+    </head>
+
+    <body>
+
+        <div class="main">
+
+            <div class="part" style="overflow-y: auto">
+                <div class="instructions">
+                    <h1><img src="assets/mistletoe.png" style="vertical-align: middle" /> Secret Santa Gift Exchange</h1>
+                    <p>Rules</p>
+                    <p> 1. Pick the name and shall not disclose the name of person to others </p>
+                    <p> 2. Once you enter your name you will not re-enter again </p>
+                    <p> 2. The gift can be your on choice and within the range of Rs 200 to Rs 500 </p>
+                </div>
+            </div>
+            
+            <div class="part2" style="overflow-y: auto">
+            <<form id="form" class="part">
+                <h2><p>Enter your Employee Name: <input id="text1" type="text"></p></h2>
+                <button type="submit" class="generate">Pick the Name</button>
+                <div id="result" class="result none"></div>
+            </form>
+            </div>
+
+        </div>
+
+    </body>
+
+    <script>
+
+      function isAmazonEnabled() {
+
+          const checkBox = document.getElementById('amazon');
+
+          return checkBox ? checkBox.checked : false;
+
+      }
+
+      function persist() {
+
+          if ( ! window.localStorage )
+              return ;
+
+          var amazon = isAmazonEnabled();
+          var content = document.getElementById( 'input' ).value;
+
+          window.localStorage.setItem( 'amazon', amazon );
+          window.localStorage.setItem( 'input', content );
+
+      }
+
+      function restore() {
+
+          if ( ! window.localStorage )
+              return ;
+
+          var amazon = window.localStorage.getItem( 'amazon' );
+          var content = window.localStorage.getItem( 'input' );
+
+          if (typeof amazon === 'undefined')
+              amazon = true;
+
+          if (typeof content === 'undefined')
+              content = '';
+
+          if ( document.getElementById( 'amazon' ) )
+              document.getElementById( 'amazon' ).checked = amazon;
+
+          document.getElementById( 'input' ).value = content;
+
+      }
+
+      function reset() {
+
+          var result = document.getElementById( 'result' );
+
+          result.classList.add( 'none' );
+          result.classList.remove( 'error' );
+
+      }
+
+      function error(text) {
+
+          var result = document.getElementById( 'result' );
+
+          result.classList.remove( 'none' );
+          result.classList.add( 'error' );
+
+          result.innerText = text;
+
+      }
+
+      function success( pairings ) {
+      }
+
+      function updateAmazon() {
+
+          var result = document.getElementById( 'result' );
+          var links = result.getElementsByTagName( 'a' );
+
+          for ( var t = 0; t < links.length; ++t ) {
+
+              var link = links[t];
+
+              if ( isAmazonEnabled() )
+                  link.href += '&extra=1';
+              else
+                  link.href = link.href.replace( /&extra=[01]/, '' );
+
+              link.innerText = link.href;
+
+          }
+
+      }
+
+      function generate( e ) {
+
+        
+
+          }
+
+    </script>
+
+    <script>
+
+    </script>
+
+</html>
